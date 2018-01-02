@@ -1,0 +1,17 @@
+[imdb]
+user_id = ""
+watchlist_id = ""
+[imdb.cookies]
+id = ""
+
+[filelist]
+url = "http://filelist.ro"
+preferred_resolution = 2160
+[filelist.auth]
+username = ""
+password = ""
+torrentdir = ""
+
+[polling]
+new_movies_minutes = 10
+longterm_hours = 3

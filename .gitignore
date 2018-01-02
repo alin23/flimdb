@@ -1,0 +1,13 @@
+*.log
+*.pyc
+.cache/
+.coverage
+.idea/
+.vscode/
+flimdb.egg-info/
+build/
+dist/
+docs/build/
+venv/
+wheelhouse/
+*.sublime*
