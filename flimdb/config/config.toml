@@ -13,5 +13,5 @@ password = ""
 torrentdir = ""
 
 [polling]
-new_movies_minutes = 10
+new_movies_minutes = 5
 longterm_hours = 3
