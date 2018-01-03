@@ -9,10 +9,13 @@ import kick  # isort:skip
 kick.start(f'{APP_NAME.lower()}', config_variant=ENV)  # isort:skip
 
 from kick import config, logger  # isort:skip
-
+import json
 from pathlib import Path
 
 from huey.contrib.sqlitedb import SqliteHuey
+
+logger.info(f'CONFIG: {json.dumps(config, indent=4)}')
+
 
 CACHE_DIR = Path.home() / '.cache' / 'imdb'
 if not CACHE_DIR.exists():
