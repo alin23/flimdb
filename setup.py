@@ -29,6 +29,7 @@ REQUIRES = [
     'python-dateutil',
     'peewee',
     'pony',
+    'python-Levenshtein',
 ]
 
 setup(
