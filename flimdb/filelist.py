@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 import fire
 import numpy as np
 import requests
-from orderby import asc, desc
+from pyorderby import asc, desc
 from lxml.html import fromstring
 from fuzzywuzzy import fuzz
 
