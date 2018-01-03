@@ -30,6 +30,7 @@ REQUIRES = [
     'peewee',
     'pony',
     'python-Levenshtein',
+    'cssselect',
 ]
 
 setup(
