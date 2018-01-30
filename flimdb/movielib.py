@@ -4,7 +4,16 @@ import logging
 from io import StringIO
 from datetime import datetime
 
-from pony.orm import *
+# pylint: disable=unused-import
+from pony.orm import (
+    Database,
+    Optional,
+    Required,
+    PrimaryKey,
+    select,
+    sql_debug,
+    db_session
+)
 from dateutil.parser import parse
 
 from . import CACHE_DIR
@@ -41,10 +50,10 @@ class Movie(db.Entity):
         with StringIO(csv_string) as f:
             reader = csv.DictReader(f, dialect='unix')
             for row in reader:
-                id = row.get("Const", '')
-                if not Movie.exists(id=id):
+                imdb_id = row.get("Const", '')
+                if not Movie.exists(id=imdb_id):
                     movie = cls(
-                        id=id,
+                        id=imdb_id,
                         added=parse(row.get("Created", '2018')),
                         modified=parse(row.get("Modified", '2018')),
                         description=row.get("Description", ''),

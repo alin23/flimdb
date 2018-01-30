@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 import numpy as np
 import requests
 from lxml.html import fromstring
-from pyorderby import asc, desc
+from pyorderby import desc
 
 import fire
 from fuzzywuzzy import fuzz
@@ -49,7 +49,8 @@ class Filelist(object):
 
         return r
 
-    def _normalize_scores(self, scores, _max=100, _min=0):
+    @staticmethod
+    def _normalize_scores(scores, _max=100, _min=0):
         return np.digitize(_max + _max * (scores - np.max(scores)) / (np.ptp(scores) - _min), np.arange(_min, _max))
 
     def get(self, url, *args, **kwargs):
@@ -121,7 +122,7 @@ class Filelist(object):
             torrents = self.movie_torrents(title=title)
         if not torrents:
             logger.error(f'No movie found for title={title}, imdb_id={imdb_id}')
-            return
+            return None
 
         torrent = torrents[0]
         logger.info(torrent.pretty_print())
