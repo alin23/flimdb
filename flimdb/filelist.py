@@ -4,11 +4,12 @@ import pathlib
 from operator import attrgetter
 from urllib.parse import urljoin
 
-import fire
 import numpy as np
 import requests
-from pyorderby import asc, desc
 from lxml.html import fromstring
+from pyorderby import asc, desc
+
+import fire
 from fuzzywuzzy import fuzz
 
 from . import config, logger
@@ -49,10 +50,7 @@ class Filelist(object):
         return r
 
     def _normalize_scores(self, scores, _max=100, _min=0):
-        return np.digitize(
-            _max + _max * (scores - np.max(scores)) / (np.ptp(scores) - _min),
-            np.arange(_min, _max)
-        )
+        return np.digitize(_max + _max * (scores - np.max(scores)) / (np.ptp(scores) - _min), np.arange(_min, _max))
 
     def get(self, url, *args, **kwargs):
         return self._request('GET', url, *args, **kwargs)
@@ -61,24 +59,16 @@ class Filelist(object):
         return self._request('POST', url, *args, **kwargs)
 
     def authenticate(self):
-        data = {
-            'username': self.username,
-            'password': self.password
-        }
+        data = {'username': self.username, 'password': self.password}
         return self.session.post(self.AUTH_URL, data=data)
 
     def search(self, query, cat=Category.TOATE, searchin=SearchIn.NUME_DESCRIERE, sort=Sort.HIBRID, fields=None):
-        params = {
-            'search': query,
-            'cat': cat,
-            'searchin': searchin,
-            'sort': sort
-        }
+        params = {'search': query, 'cat': cat, 'searchin': searchin, 'sort': sort}
         r = self.get(self.SEARCH_URL, params=params)
         dom = fromstring(r.content)
         torrents = dom.cssselect('.torrentrow')
         torrents = map(Torrent.from_torrent_row, torrents)
-        torrents = list(filter(lambda t: t.active, torrents))
+        torrents = list(filter(lambda t: t.active and not t.is_low_quality, torrents))
 
         if fields:
             return list(map(attrgetter(*fields), torrents))
@@ -117,12 +107,7 @@ class Filelist(object):
             torrent.similarity = fuzz.partial_ratio(title, torrent.title)
 
         order = (
-            desc('$similarity > 70')
-            .desc('score')
-            .desc('rosubbed')
-            .desc('dolby')
-            .desc('active')
-            .desc('resolution')
+            desc('$similarity > 70').desc('score').desc('rosubbed').desc('dolby').desc('active').desc('resolution')
             .desc('date_uploaded')
         )
         torrents = list(sorted(torrents, key=order))

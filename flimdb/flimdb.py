@@ -3,13 +3,14 @@ import os
 import subprocess
 from urllib.parse import urljoin
 
-import fire
 import kick
 import requests
-from huey import crontab
-from gevent import monkey
 from setuptools import Distribution
 from setuptools.command.install import install
+
+import fire
+from huey import crontab
+from gevent import monkey
 
 from . import LOG_DIR, APP_NAME, huey, config, logger
 from .filelist import Filelist
@@ -55,10 +56,7 @@ def download(movie):
 
 @db_session
 def watchlist():
-    params = {
-        'list_id': config.imdb.watchlist_id,
-        'author_id': config.imdb.user_id
-    }
+    params = {'list_id': config.imdb.watchlist_id, 'author_id': config.imdb.user_id}
     resp = requests.get(EXPORT_URL, params=params, cookies=config.imdb.cookies)
     movies = Movie.from_csv(resp.content.decode('utf-8', 'ignore'))
 
@@ -91,7 +89,10 @@ def run(debug=False, huey_consumer_path=None):
 
     db.disconnect()
     huey_consumer_path = huey_consumer_path or os.path.join(get_setuptools_script_dir(), 'huey_consumer')
-    huey_cmd = [huey_consumer_path, 'flimdb.flimdb.huey', '-w', '10', '-k', 'greenlet', '--logfile', str(LOG_DIR / 'huey.log'), '-C']
+    huey_cmd = [
+        huey_consumer_path, 'flimdb.flimdb.huey', '-w', '10', '-k', 'greenlet', '--logfile',
+        str(LOG_DIR / 'huey.log'), '-C'
+    ]
     if debug:
         huey_cmd.append('--verbose')
     logger.info(f'Running consumer using: \n\t{" ".join(huey_cmd)}')

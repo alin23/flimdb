@@ -44,11 +44,9 @@ setup(
     maintainer_email='alin.p32@gmail.com',
     url='https://github.com/alin23/flimdb',
     license='MIT/Apache-2.0',
-
     keywords=[
         '',
     ],
-
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
@@ -60,25 +58,13 @@ setup(
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
     ],
-
     install_requires=REQUIRES,
     tests_require=['coverage', 'pytest'],
-
     packages=find_packages(),
-    package_data={
-        'flimdb': [
-            'config/*.toml',
-        ]
-    },
-    data_files=[
-        (str(CONFIGDIR), ['flimdb/config/config.toml'])
-    ],
-
-    entry_points={
-        'console_scripts': [
-            'flimdb = flimdb.flimdb:main',
-            'filelist = flimdb.filelist:main',
-        ]
-    },
-
+    package_data={'flimdb': ['config/*.toml', ]},
+    data_files=[(str(CONFIGDIR), ['flimdb/config/config.toml'])],
+    entry_points={'console_scripts': [
+        'flimdb = flimdb.flimdb:main',
+        'filelist = flimdb.filelist:main',
+    ]},
 )

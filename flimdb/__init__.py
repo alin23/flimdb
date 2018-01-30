@@ -16,7 +16,6 @@ from huey.contrib.sqlitedb import SqliteHuey
 
 logger.info(f'CONFIG: {json.dumps(config, indent=4)}')
 
-
 CACHE_DIR = Path.home() / '.cache' / 'imdb'
 if not CACHE_DIR.exists():
     CACHE_DIR.mkdir(parents=True)

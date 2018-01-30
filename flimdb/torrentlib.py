@@ -59,12 +59,38 @@ class Sort(IntEnum):
     PEERS = 5
 
 
+LOW_QUALITY_RELEASES = {
+    '3GP',
+    'BDSCR',
+    'CAM',
+    'CAMRip',
+    'DVDSCR',
+    'DVDSCREENER',
+    'HD-CAM',
+    'HD-TC',
+    'HD-TS',
+    'HDCAM',
+    'HDTC',
+    'HDTS',
+    'PDVD',
+    'PreDVDRip',
+    'R5',
+    'R5.AC3.5.1.HQ',
+    'R5.LINE',
+    'SCR',
+    'SCREENER',
+    'TC',
+    'TELECINE',
+    'TELESYNC',
+    'TS',
+}
+
+
 class Torrent:
     def __init__(
-            self, title: str, url: str, download_url: str,
-            date_uploaded: datetime, size: float, snatched: int,
-            seeders: int, leechers: int, resolution: int,
-            dolby: bool, rosubbed: bool, score: int):
+        self, title: str, url: str, download_url: str, date_uploaded: datetime, size: float, snatched: int,
+        seeders: int, leechers: int, resolution: int, dolby: bool, rosubbed: bool, score: int
+    ):
         self.title = title
         self.url = url
         self.download_url = download_url
@@ -92,7 +118,8 @@ class Torrent:
             f'🔺{self.seeders} '
             f'🔻{self.leechers} '
             f'{self.url} '
-            f'{self.download_url}')
+            f'{self.download_url}'
+        )
 
     def pretty_print(self):
         return f"""Title: {self.title}
@@ -107,6 +134,10 @@ class Torrent:
         Torrent URL: {self.url}
         Download URL: {self.download_url}
         """
+
+    @property
+    def is_low_quality(self):
+        return bool(set(self.title.split('.')) & LOW_QUALITY_RELEASES)
 
     @classmethod
     def from_torrent_row(cls, torrentrow):
@@ -143,17 +174,9 @@ class Torrent:
         dolby = ('dts' in title.lower()) or ('dd5.1' in title.lower())
 
         size_gb = (size / SIZE_MULTIPLIERS['G'])
-        score = int(
-            (resolution - (size_gb * 100)) -
-            abs(resolution - config.filelist.preferred_resolution) * 15 +
-            (rosubbed * 2000) +
-            (dolby * 500) +
-            (seeders * 10) +
-            (leechers)
-        )
+        score = int((resolution - (size_gb * 100)) - abs(resolution - config.filelist.preferred_resolution) * 15 +
+                    (rosubbed * 2000) + (dolby * 500) + (seeders * 10) + (leechers))
         return cls(
-            title, url, download_url,
-            date_uploaded, size,
-            snatched, seeders, leechers,
-            resolution, dolby, rosubbed, score
+            title, url, download_url, date_uploaded, size, snatched, seeders, leechers, resolution, dolby, rosubbed,
+            score
         )
