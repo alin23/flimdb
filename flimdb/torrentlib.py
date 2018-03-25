@@ -7,11 +7,7 @@ from dateutil import parser
 
 from . import config
 
-SIZE_MULTIPLIERS = {
-    'K': 1_000,
-    'M': 1_000_000,
-    'G': 1_000_000_000,
-}
+SIZE_MULTIPLIERS = {'K': 1_000, 'M': 1_000_000, 'G': 1_000_000_000}
 
 
 class Category(IntEnum):
@@ -86,10 +82,26 @@ LOW_QUALITY_RELEASES = {
 }
 
 
+# pylint: disable=too-many-instance-attributes
+
+
 class Torrent:
+    # pylint: disable=too-many-arguments
+
     def __init__(
-        self, title: str, url: str, download_url: str, date_uploaded: datetime, size: float, snatched: int,
-        seeders: int, leechers: int, resolution: int, dolby: bool, rosubbed: bool, score: int
+        self,
+        title: str,
+        url: str,
+        download_url: str,
+        date_uploaded: datetime,
+        size: float,
+        snatched: int,
+        seeders: int,
+        leechers: int,
+        resolution: int,
+        dolby: bool,
+        rosubbed: bool,
+        score: int,
     ):
         self.title = title
         self.url = url
@@ -139,6 +151,8 @@ class Torrent:
     def is_low_quality(self):
         return bool(set(self.title.split('.')) & LOW_QUALITY_RELEASES)
 
+    # pylint: disable=too-many-locals
+
     @classmethod
     def from_torrent_row(cls, torrentrow):
         elems = torrentrow.cssselect('.torrenttable')
@@ -146,7 +160,9 @@ class Torrent:
 
         title = torrent.text_content().strip('.')
         url = urljoin(config.filelist.url, torrent.get('href'))
-        download_url = urljoin(config.filelist.url, elems[3].cssselect('span>a')[0].get('href'))
+        download_url = urljoin(
+            config.filelist.url, elems[3].cssselect('span>a')[0].get('href')
+        )
 
         date_element = elems[5].cssselect('span>nobr>font')[0]
         date_string = f'{date_element.text}T{date_element[0].tail}'
@@ -174,9 +190,26 @@ class Torrent:
         dolby = ('dts' in title.lower()) or ('dd5.1' in title.lower())
 
         size_gb = (size / SIZE_MULTIPLIERS['G'])
-        score = int((resolution - (size_gb * 100)) - abs(resolution - config.filelist.preferred_resolution) * 15 +
-                    (rosubbed * 2000) + (dolby * 500) + (seeders * 10) + (leechers))
+        score = int(
+            (resolution - (size_gb * 100)) -
+            abs(resolution - config.filelist.preferred_resolution) *
+            15 +
+            (rosubbed * 2000) +
+            (dolby * 500) +
+            (seeders * 10) +
+            (leechers)
+        )
         return cls(
-            title, url, download_url, date_uploaded, size, snatched, seeders, leechers, resolution, dolby, rosubbed,
-            score
+            title,
+            url,
+            download_url,
+            date_uploaded,
+            size,
+            snatched,
+            seeders,
+            leechers,
+            resolution,
+            dolby,
+            rosubbed,
+            score,
         )

@@ -3,9 +3,11 @@ __version__ = '1.1.5'
 APP_NAME = 'FLIMDb'
 
 import os  # isort:skip
+
 ENV = os.getenv(f'{APP_NAME.upper()}_ENV', 'config')  # isort:skip
 
 import kick  # isort:skip
+
 kick.start(f'{APP_NAME.lower()}', config_variant=ENV)  # isort:skip
 
 from kick import config, logger  # isort:skip
@@ -16,6 +18,7 @@ from huey.contrib.sqlitedb import SqliteHuey
 
 logger.info(f'CONFIG: {json.dumps(config, indent=4)}')
 
+# pylint: disable=no-member
 CACHE_DIR = Path.home() / '.cache' / 'imdb'
 if not CACHE_DIR.exists():
     CACHE_DIR.mkdir(parents=True)

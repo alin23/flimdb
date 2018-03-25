@@ -4,16 +4,7 @@ import logging
 from io import StringIO
 from datetime import datetime
 
-# pylint: disable=unused-import
-from pony.orm import (
-    Database,
-    Optional,
-    Required,
-    PrimaryKey,
-    select,
-    sql_debug,
-    db_session
-)
+from pony.orm import Database, Optional, Required, PrimaryKey, sql_debug
 from dateutil.parser import parse
 
 from . import CACHE_DIR
@@ -67,7 +58,7 @@ class Movie(db.Entity):
                         votes=int(row.get("Num Votes", 0)),
                         released=parse(row.get("Release Date", '2018')),
                         url=row.get("URL", ''),
-                        downloaded=False
+                        downloaded=False,
                     )
                     movies.append(movie)
 

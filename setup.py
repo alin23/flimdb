@@ -4,7 +4,7 @@ from io import open
 from setuptools import setup, find_packages
 
 CONFIGDIR = pathlib.Path.home() / '.config' / 'flimdb'
-CONFIGDIR.mkdir(parents=True, exist_ok=True)
+CONFIGDIR.mkdir(parents=True, exist_ok=True)  # pylint: disable=no-member
 
 with open('flimdb/__init__.py', 'r') as f:
     for line in f:
@@ -29,6 +29,7 @@ REQUIRES = [
     'python-dateutil',
     'peewee',
     'pony',
+    'gevent',
     'python-Levenshtein',
     'cssselect',
 ]

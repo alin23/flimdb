@@ -3,28 +3,29 @@ import os
 import subprocess
 from urllib.parse import urljoin
 
+import fire
 import kick
 import requests
+from huey import crontab
+from gevent import monkey
+from pony.orm import select, db_session
 from setuptools import Distribution
 from setuptools.command.install import install
 
-import fire
-from huey import crontab
-from gevent import monkey
-
 from . import LOG_DIR, APP_NAME, huey, config, logger
 from .filelist import Filelist
-from .movielib import Movie, db, select, db_session
+from .movielib import Movie, db
 
 monkey.patch_all()
 
 URL = 'http://www.imdb.com/'
 WATCHLIST_URL = urljoin(URL, f'user/{config.imdb.user_id}/watchlist')
 EXPORT_URL = urljoin(URL, 'list/export')
-filelist = Filelist(**config.filelist.auth)
+filelist = Filelist(** config.filelist.auth)
 
 
 class OnlyGetScriptPath(install):
+
     def run(self):
         self.distribution.install_scripts = self.install_scripts
 
@@ -88,10 +89,19 @@ def run(debug=False, huey_consumer_path=None):
     check_longterm_watchlist()
 
     db.disconnect()
-    huey_consumer_path = huey_consumer_path or os.path.join(get_setuptools_script_dir(), 'huey_consumer')
+    huey_consumer_path = huey_consumer_path or os.path.join(
+        get_setuptools_script_dir(), 'huey_consumer'
+    )
     huey_cmd = [
-        huey_consumer_path, 'flimdb.flimdb.huey', '-w', '10', '-k', 'greenlet', '--logfile',
-        str(LOG_DIR / 'huey.log'), '-C'
+        huey_consumer_path,
+        'flimdb.flimdb.huey',
+        '-w',
+        '10',
+        '-k',
+        'greenlet',
+        '--logfile',
+        str(LOG_DIR / 'huey.log'),
+        '-C',
     ]
     if debug:
         huey_cmd.append('--verbose')
