@@ -7,7 +7,7 @@ from dateutil import parser
 
 from . import config
 
-SIZE_MULTIPLIERS = {'K': 1_000, 'M': 1_000_000, 'G': 1_000_000_000}
+SIZE_MULTIPLIERS = {"K": 1_000, "M": 1_000_000, "G": 1_000_000_000}
 
 
 class Category(IntEnum):
@@ -56,29 +56,29 @@ class Sort(IntEnum):
 
 
 LOW_QUALITY_RELEASES = {
-    '3GP',
-    'BDSCR',
-    'CAM',
-    'CAMRip',
-    'DVDSCR',
-    'DVDSCREENER',
-    'HD-CAM',
-    'HD-TC',
-    'HD-TS',
-    'HDCAM',
-    'HDTC',
-    'HDTS',
-    'PDVD',
-    'PreDVDRip',
-    'R5',
-    'R5.AC3.5.1.HQ',
-    'R5.LINE',
-    'SCR',
-    'SCREENER',
-    'TC',
-    'TELECINE',
-    'TELESYNC',
-    'TS',
+    "3GP",
+    "BDSCR",
+    "CAM",
+    "CAMRip",
+    "DVDSCR",
+    "DVDSCREENER",
+    "HD-CAM",
+    "HD-TC",
+    "HD-TS",
+    "HDCAM",
+    "HDTC",
+    "HDTS",
+    "PDVD",
+    "PreDVDRip",
+    "R5",
+    "R5.AC3.5.1.HQ",
+    "R5.LINE",
+    "SCR",
+    "SCREENER",
+    "TC",
+    "TELECINE",
+    "TELESYNC",
+    "TS",
 }
 
 
@@ -120,17 +120,17 @@ class Torrent:
 
     def __str__(self):
         return (
-            f'{self.title} ({self.score}): '
+            f"{self.title} ({self.score}): "
             f'{self.resolution or ""} '
             f'{self.size / SIZE_MULTIPLIERS["G"]}GB'
             f'{" RoSubbed" if self.rosubbed else ""}'
             f'{" Dolby " if self.dolby else ""}'
-            f'[{self.date_uploaded}] '
-            f'⭐{self.snatched} '
-            f'🔺{self.seeders} '
-            f'🔻{self.leechers} '
-            f'{self.url} '
-            f'{self.download_url}'
+            f"[{self.date_uploaded}] "
+            f"⭐{self.snatched} "
+            f"🔺{self.seeders} "
+            f"🔻{self.leechers} "
+            f"{self.url} "
+            f"{self.download_url}"
         )
 
     def pretty_print(self):
@@ -149,55 +149,55 @@ class Torrent:
 
     @property
     def is_low_quality(self):
-        return bool(set(self.title.split('.')) & LOW_QUALITY_RELEASES)
+        return bool(set(self.title.split(".")) & LOW_QUALITY_RELEASES)
 
     # pylint: disable=too-many-locals
 
     @classmethod
     def from_torrent_row(cls, torrentrow):
-        elems = torrentrow.cssselect('.torrenttable')
-        torrent = elems[1].cssselect('span>a')[0]
+        elems = torrentrow.cssselect(".torrenttable")
+        torrent = elems[1].cssselect("span>a")[0]
 
-        title = torrent.text_content().strip('.')
-        url = urljoin(config.filelist.url, torrent.get('href'))
+        title = torrent.text_content().strip(".")
+        url = urljoin(config.filelist.url, torrent.get("href"))
         download_url = urljoin(
-            config.filelist.url, elems[3].cssselect('span>a')[0].get('href')
+            config.filelist.url, elems[3].cssselect("span>a")[0].get("href")
         )
 
-        date_element = elems[5].cssselect('span>nobr>font')[0]
-        date_string = f'{date_element.text}T{date_element[0].tail}'
+        date_element = elems[5].cssselect("span>nobr>font")[0]
+        date_string = f"{date_element.text}T{date_element[0].tail}"
         date_uploaded = parser.parse(date_string)
 
         size_string = elems[6].text_content()
         multiplier = SIZE_MULTIPLIERS.get(size_string[-2], 1)
         size = float(size_string[:-2]) * multiplier
 
-        snatched = int(re.sub(r'\D', '', elems[7].text_content()))
-        seeders = int(re.sub(r'\D', '', elems[8].text_content()))
-        leechers = int(re.sub(r'\D', '', elems[9].text_content()))
+        snatched = int(re.sub(r"\D", "", elems[7].text_content()))
+        seeders = int(re.sub(r"\D", "", elems[8].text_content()))
+        leechers = int(re.sub(r"\D", "", elems[9].text_content()))
 
-        resolution = re.search(r'\d+(?=p)', title)
+        resolution = re.search(r"\d+(?=p)", title)
         if resolution:
             resolution = int(resolution.group(0))
         else:
             resolution = 0
 
-        tags = elems[1].cssselect('span>font')
+        tags = elems[1].cssselect("span>font")
         rosubbed = False
         if tags:
-            rosubbed = 'rosub' in tags[0].text_content().lower()
-        rosubbed = rosubbed or ('rosub' in title.lower())
-        dolby = ('dts' in title.lower()) or ('dd5.1' in title.lower())
+            rosubbed = "rosub" in tags[0].text_content().lower()
+        rosubbed = rosubbed or ("rosub" in title.lower())
+        dolby = ("dts" in title.lower()) or ("dd5.1" in title.lower())
 
-        size_gb = (size / SIZE_MULTIPLIERS['G'])
+        size_gb = (size / SIZE_MULTIPLIERS["G"])
         score = int(
-            (resolution - (size_gb * 100)) -
-            abs(resolution - config.filelist.preferred_resolution) *
-            15 +
-            (rosubbed * 2000) +
-            (dolby * 500) +
-            (seeders * 10) +
-            (leechers)
+            (resolution - (size_gb * 100))
+            - abs(resolution - config.filelist.preferred_resolution)
+            * 15
+            + (rosubbed * 2000)
+            + (dolby * 500)
+            + (seeders * 10)
+            + (leechers)
         )
         return cls(
             title,

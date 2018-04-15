@@ -18,10 +18,10 @@ from .torrentlib import Sort, Torrent, Category, SearchIn
 class Filelist(object):
     """Filelist helper"""
 
-    URL = 'http://filelist.ro'
-    AUTH_URL = urljoin(URL, 'takelogin.php')
-    LOGIN_URL = urljoin(URL, 'login.php')
-    SEARCH_URL = urljoin(URL, 'browse.php')
+    URL = "https://filelist.ro"
+    AUTH_URL = urljoin(URL, "takelogin.php")
+    LOGIN_URL = urljoin(URL, "login.php")
+    SEARCH_URL = urljoin(URL, "browse.php")
 
     MOVIE_CATEGORIES = [
         Category.FILME_4K,
@@ -56,13 +56,13 @@ class Filelist(object):
         )
 
     def get(self, url, *args, **kwargs):
-        return self._request('GET', url, *args, **kwargs)
+        return self._request("GET", url, *args, **kwargs)
 
     def post(self, url, *args, **kwargs):
-        return self._request('POST', url, *args, **kwargs)
+        return self._request("POST", url, *args, **kwargs)
 
     def authenticate(self):
-        data = {'username': self.username, 'password': self.password}
+        data = {"username": self.username, "password": self.password}
         return self.session.post(self.AUTH_URL, data=data)
 
     def search(
@@ -73,10 +73,10 @@ class Filelist(object):
         sort=Sort.HIBRID,
         fields=None,
     ):
-        params = {'search': query, 'cat': cat, 'searchin': searchin, 'sort': sort}
+        params = {"search": query, "cat": cat, "searchin": searchin, "sort": sort}
         r = self.get(self.SEARCH_URL, params=params)
         dom = fromstring(r.content)
-        torrents = dom.cssselect('.torrentrow')
+        torrents = dom.cssselect(".torrentrow")
         torrents = map(Torrent.from_torrent_row, torrents)
         torrents = list(filter(lambda t: t.active and not t.is_low_quality, torrents))
 
@@ -87,7 +87,7 @@ class Filelist(object):
 
     def download(self, torrent: Torrent):
         url = torrent.download_url
-        torrent_file = self.torrentdir / f'{torrent.title}.torrent'
+        torrent_file = self.torrentdir / f"{torrent.title}.torrent"
 
         r = self.get(url)
         if r.status_code == 200:
@@ -101,7 +101,7 @@ class Filelist(object):
         elif title:
             searchin = SearchIn.NUME
         else:
-            raise Exception('No arguments provided')
+            raise Exception("No arguments provided")
 
         torrents = []
         for cat in self.MOVIE_CATEGORIES:
@@ -118,12 +118,12 @@ class Filelist(object):
             torrent.similarity = fuzz.partial_ratio(title, torrent.title)
 
         order = (
-            desc('$similarity > 70').desc('score').desc('rosubbed').desc('dolby').desc(
-                'active'
+            desc("$similarity > 70").desc("score").desc("rosubbed").desc("dolby").desc(
+                "active"
             ).desc(
-                'resolution'
+                "resolution"
             ).desc(
-                'date_uploaded'
+                "date_uploaded"
             )
         )
         torrents = list(sorted(torrents, key=order))
@@ -136,7 +136,7 @@ class Filelist(object):
         if not torrents and title:
             torrents = self.movie_torrents(title=title)
         if not torrents:
-            logger.error(f'No movie found for title={title}, imdb_id={imdb_id}')
+            logger.error(f"No movie found for title={title}, imdb_id={imdb_id}")
             return None
 
         torrent = torrents[0]
@@ -149,8 +149,8 @@ class Filelist(object):
 
 
 def main():
-    fire.Fire(Filelist(** config.filelist.auth))
+    fire.Fire(Filelist(**config.filelist.auth))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
