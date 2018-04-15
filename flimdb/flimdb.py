@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+from gevent import monkey  # isort:skip
+monkey.patch_all()  # isort:skip
+
 import os
 import subprocess
 from urllib.parse import urljoin
@@ -7,7 +10,6 @@ import fire
 import kick
 import requests
 from huey import crontab
-from gevent import monkey
 from pony.orm import select, db_session
 from setuptools import Distribution
 from setuptools.command.install import install
@@ -15,8 +17,6 @@ from setuptools.command.install import install
 from . import LOG_DIR, APP_NAME, huey, config, logger
 from .filelist import Filelist
 from .movielib import Movie, db
-
-monkey.patch_all()
 
 URL = 'http://www.imdb.com/'
 WATCHLIST_URL = urljoin(URL, f'user/{config.imdb.user_id}/watchlist')
