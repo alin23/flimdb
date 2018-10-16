@@ -26,9 +26,7 @@ REQUIRES = [
     "lxml",
     "numpy",
     "python-dateutil",
-    "peewee",
     "pony",
-    "gevent",
     "python-Levenshtein",
     "cssselect",
 ]

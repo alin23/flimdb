@@ -13,7 +13,6 @@ if os.getenv("DB_DEBUG"):
     sql_debug(True)
     logging.getLogger().setLevel(logging.INFO)
     logging.getLogger("pony.orm.sql").setLevel(logging.DEBUG)
-    logging.getLogger("peewee").setLevel(logging.DEBUG)
 
 db = Database()
 
