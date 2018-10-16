@@ -1,13 +1,13 @@
 import re
-from enum import IntEnum
 from datetime import datetime
+from enum import IntEnum
 from urllib.parse import urljoin
 
 from dateutil import parser
 
 from . import config
 
-SIZE_MULTIPLIERS = {"K": 1_000, "M": 1_000_000, "G": 1_000_000_000}
+SIZE_MULTIPLIERS = {"K": 1000, "M": 1_000_000, "G": 1_000_000_000}
 
 
 class Category(IntEnum):
@@ -165,7 +165,7 @@ class Torrent:
         )
 
         date_element = elems[5].cssselect("span>nobr>font")[0]
-        date_string = f"{date_element.text}T{date_element[0].tail}"
+        date_string = f"{date_element.text} {date_element[0].tail}"
         date_uploaded = parser.parse(date_string)
 
         size_string = elems[6].text_content()
@@ -189,11 +189,10 @@ class Torrent:
         rosubbed = rosubbed or ("rosub" in title.lower())
         dolby = ("dts" in title.lower()) or ("dd5.1" in title.lower())
 
-        size_gb = (size / SIZE_MULTIPLIERS["G"])
+        size_gb = size / SIZE_MULTIPLIERS["G"]
         score = int(
             (resolution - (size_gb * 100))
-            - abs(resolution - config.filelist.preferred_resolution)
-            * 15
+            - abs(resolution - config.filelist.preferred_resolution) * 15
             + (rosubbed * 2000)
             + (dolby * 500)
             + (seeders * 10)

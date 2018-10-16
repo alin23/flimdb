@@ -1,11 +1,11 @@
-import os
 import csv
 import logging
-from io import StringIO
+import os
 from datetime import datetime
+from io import StringIO
 
-from pony.orm import Database, Optional, Required, PrimaryKey, sql_debug
 from dateutil.parser import parse
+from pony.orm import Database, Optional, PrimaryKey, Required, sql_debug
 
 from . import CACHE_DIR
 
@@ -36,7 +36,7 @@ class Movie(db.Entity):
     downloaded = Required(bool, default=False, index=True)
 
     @classmethod
-    def from_csv(cls, csv_string):
+    def from_csv(cls, csv_string, only_new=False):
         movies = []
         with StringIO(csv_string) as f:
             reader = csv.DictReader(f, dialect="unix")
@@ -61,6 +61,8 @@ class Movie(db.Entity):
                         downloaded=False,
                     )
                     movies.append(movie)
+                elif not only_new:
+                    movies.append(Movie[imdb_id])
 
         return movies
 

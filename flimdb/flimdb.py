@@ -1,119 +1,97 @@
 #!/usr/bin/env python
-from gevent import monkey  # isort:skip
-
-monkey.patch_all()  # isort:skip
-
-import os
-import subprocess
+import asyncio
 from urllib.parse import urljoin
 
+import aiohttp
 import fire
 import kick
-import requests
-from huey import crontab
-from pony.orm import select, db_session
-from setuptools import Distribution
-from setuptools.command.install import install
+from pony.orm import db_session, select
 
-from . import LOG_DIR, APP_NAME, huey, config, logger
+from . import APP_NAME, config, logger
 from .filelist import Filelist
-from .movielib import Movie, db
+from .movielib import Movie
 
 URL = "http://www.imdb.com/"
 WATCHLIST_URL = urljoin(URL, f"user/{config.imdb.user_id}/watchlist")
 EXPORT_URL = urljoin(URL, "list/export")
-filelist = Filelist(**config.filelist.auth)
+SESSION = None
+filelist = None
 
 
-class OnlyGetScriptPath(install):
-
-    def run(self):
-        self.distribution.install_scripts = self.install_scripts
-
-
-def get_setuptools_script_dir():
-    " Get the directory setuptools installs scripts to for current python "
-    dist = Distribution({"cmdclass": {"install": OnlyGetScriptPath}})
-    dist.dry_run = True  # not sure if necessary
-    dist.parse_config_files()
-    command = dist.get_command_obj("install")
-    command.ensure_finalized()
-    command.run()
-    return dist.install_scripts
-
-
-@huey.task()
 @db_session
-def download(movie):
+async def download(movie):
     if isinstance(movie, str):
         movie = Movie[movie]
 
-    logger.info(f"Downloading {movie.title} [{movie.url}]")
+    logger.info("Downloading %s [%s]", movie.title, movie.url)
 
-    torrent = filelist.best_movie(imdb_id=movie.id)
+    torrent = await filelist.best_movie(imdb_id=movie.id)
     if torrent:
-        filelist.download(torrent)
+        await filelist.download(torrent)
         movie.downloaded = True
 
 
-@db_session
-def watchlist():
+async def watchlist(only_new=False):
+    global SESSION
     params = {"list_id": config.imdb.watchlist_id, "author_id": config.imdb.user_id}
-    resp = requests.get(EXPORT_URL, params=params, cookies=config.imdb.cookies)
-    movies = Movie.from_csv(resp.content.decode("utf-8", "ignore"))
+    if not SESSION:
+        SESSION = aiohttp.ClientSession(cookies=config.imdb.cookies)
+
+    async with SESSION.get(EXPORT_URL, params=params) as resp:
+        with db_session:
+            movies = Movie.from_csv(await resp.text(), only_new=only_new)
 
     return movies
 
 
-@huey.periodic_task(crontab(minute=f"*/{config.polling.new_movies_minutes}"))
-def check_watchlist():
-    logger.debug("Checking watchlist")
-    with db_session:
-        for movie in watchlist():
-            download(movie.id)
+async def check_watchlist():
+    while True:
+        logger.debug("Checking watchlist")
+        with db_session:
+            try:
+                _watchlist = await watchlist(only_new=True)
+                await asyncio.gather(*[download(movie.id) for movie in _watchlist])
+            except Exception as e:
+                logger.exception(e)
+        await asyncio.sleep(config.polling.new_movies_minutes * 60)
 
 
-@huey.periodic_task(crontab(hour=f"*/{config.polling.longterm_hours}", minute="0"))
-def check_longterm_watchlist():
-    logger.debug("Checking longterm watchlist")
-    with db_session:
-        for movie in select(m for m in Movie if not m.downloaded):
-            download(movie.id)
+async def check_longterm_watchlist():
+    while True:
+        logger.debug("Checking longterm watchlist")
+        with db_session:
+            try:
+                await asyncio.gather(
+                    *[
+                        download(movie.id)
+                        for movie in select(m for m in Movie if not m.downloaded)
+                    ]
+                )
+            except Exception as e:
+                logger.exception(e)
+        await asyncio.sleep(config.polling.longterm_hours * 60 * 60)
 
 
 def update_config(name="config"):
     kick.update_config(APP_NAME.lower(), variant=name)
 
 
-def run(debug=False, huey_consumer_path=None):
-    check_watchlist()
-    check_longterm_watchlist()
-
-    db.disconnect()
-    huey_consumer_path = huey_consumer_path or os.path.join(
-        get_setuptools_script_dir(), "huey_consumer"
-    )
-    huey_cmd = [
-        huey_consumer_path,
-        "flimdb.flimdb.huey",
-        "-w",
-        "10",
-        "-k",
-        "greenlet",
-        "--logfile",
-        str(LOG_DIR / "huey.log"),
-        "-C",
-    ]
-    if debug:
-        huey_cmd.append("--verbose")
-    logger.info(f'Running consumer using: \n\t{" ".join(huey_cmd)}')
-
-    subprocess.run(huey_cmd)
+async def watch():
+    global SESSION, filelist
+    async with aiohttp.ClientSession(cookies=config.imdb.cookies) as session:
+        SESSION = session
+        async with aiohttp.ClientSession() as filelist_session:
+            filelist = Filelist(session=filelist_session, **config.filelist.auth)
+            asyncio.create_task(check_watchlist())
+            await check_longterm_watchlist()
 
 
 def main():
+    global SESSION
     try:
         fire.Fire()
+        if SESSION and not SESSION.closed:
+            asyncio.run(SESSION.close())
     except KeyboardInterrupt:
         logger.info("Quitting")
 

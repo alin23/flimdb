@@ -1,4 +1,8 @@
 __version__ = "1.1.7"
+import asyncio  # isort:skip
+import uvloop  # isort:skip
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())  # isort:skip
 
 APP_NAME = "FLIMDb"
 
@@ -14,9 +18,7 @@ from kick import config, logger  # isort:skip
 import json
 from pathlib import Path
 
-from huey.contrib.sqlitedb import SqliteHuey
-
-logger.debug(f"CONFIG: {json.dumps(config, indent=4)}")
+logger.debug("CONFIG: {%s}", json.dumps(config, indent=4))
 
 # pylint: disable=no-member
 CACHE_DIR = Path.home() / ".cache" / "imdb"
@@ -26,5 +28,3 @@ if not CACHE_DIR.exists():
 LOG_DIR = Path.home() / ".log" / "imdb"
 if not LOG_DIR.exists():
     LOG_DIR.mkdir(parents=True)
-
-huey = SqliteHuey("flimdb", filename=str(CACHE_DIR / "huey.db"))

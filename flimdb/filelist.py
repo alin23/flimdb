@@ -1,21 +1,22 @@
 #!/usr/bin/env python
 
+import asyncio
 import pathlib
 from operator import attrgetter
 from urllib.parse import urljoin
 
+import aiohttp
 import fire
 import numpy as np
-import requests
+from fuzzywuzzy import fuzz
 from lxml.html import fromstring
 from pyorderby import desc
-from fuzzywuzzy import fuzz
 
 from . import config, logger
-from .torrentlib import Sort, Torrent, Category, SearchIn
+from .torrentlib import Category, SearchIn, Sort, Torrent
 
 
-class Filelist(object):
+class Filelist:
     """Filelist helper"""
 
     URL = "https://filelist.ro"
@@ -33,20 +34,22 @@ class Filelist(object):
         Category.FILME_DVD,
     ]
 
-    def __init__(self, username, password, torrentdir):
+    def __init__(self, username=None, password=None, torrentdir=None, session=None):
         super(Filelist, self).__init__()
         self.username = username
         self.password = password
         self.torrentdir = pathlib.Path(torrentdir)
-        self.session = requests.session()
+        self.session = session
 
-    def _request(self, method, url, *args, **kwargs):
-        r = self.session.request(method, url, *args, **kwargs)
-        if r.url == self.LOGIN_URL:
-            self.authenticate()
-            r = self.session.request(method, url, *args, **kwargs)
+    async def _request(self, method, url, *args, **kwargs):
+        if not self.session:
+            self.session = aiohttp.ClientSession()
+        resp = await self.session.request(method, url, *args, **kwargs)
+        if not resp.url.human_repr().startswith(self.LOGIN_URL):
+            return resp
 
-        return r
+        await self.authenticate()
+        return await self.session.request(method, url, *args, **kwargs)
 
     @staticmethod
     def _normalize_scores(scores, _max=100, _min=0):
@@ -55,17 +58,17 @@ class Filelist(object):
             np.arange(_min, _max),
         )
 
-    def get(self, url, *args, **kwargs):
-        return self._request("GET", url, *args, **kwargs)
+    async def get(self, url, *args, **kwargs):
+        return await self._request("GET", url, *args, **kwargs)
 
-    def post(self, url, *args, **kwargs):
-        return self._request("POST", url, *args, **kwargs)
+    async def post(self, url, *args, **kwargs):
+        return await self._request("POST", url, *args, **kwargs)
 
-    def authenticate(self):
+    async def authenticate(self):
         data = {"username": self.username, "password": self.password}
-        return self.session.post(self.AUTH_URL, data=data)
+        return await self.session.post(self.AUTH_URL, data=data)
 
-    def search(
+    async def search(
         self,
         query,
         cat=Category.TOATE,
@@ -73,9 +76,15 @@ class Filelist(object):
         sort=Sort.HIBRID,
         fields=None,
     ):
-        params = {"search": query, "cat": cat, "searchin": searchin, "sort": sort}
-        r = self.get(self.SEARCH_URL, params=params)
-        dom = fromstring(r.content)
+        params = {
+            "search": query,
+            "cat": Category(cat).value,
+            "searchin": SearchIn(searchin).value,
+            "sort": Sort(sort).value,
+        }
+        r = await self.get(self.SEARCH_URL, params=params)
+        async with r:
+            dom = fromstring(await r.text())
         torrents = dom.cssselect(".torrentrow")
         torrents = map(Torrent.from_torrent_row, torrents)
         torrents = list(filter(lambda t: t.active and not t.is_low_quality, torrents))
@@ -85,17 +94,18 @@ class Filelist(object):
 
         return torrents
 
-    def download(self, torrent: Torrent):
+    async def download(self, torrent: Torrent):
         url = torrent.download_url
         torrent_file = self.torrentdir / f"{torrent.title}.torrent"
 
-        r = self.get(url)
-        if r.status_code == 200:
-            torrent_file.write_bytes(r.content)
+        r = await self.get(url)
+        async with r:
+            if r.status == 200:
+                torrent_file.write_bytes(await r.read())
 
         return torrent_file
 
-    def movie_torrents(self, imdb_id=None, title=None):
+    async def movie_torrents(self, imdb_id=None, title=None):
         if imdb_id:
             searchin = SearchIn.IMDB
         elif title:
@@ -105,7 +115,7 @@ class Filelist(object):
 
         torrents = []
         for cat in self.MOVIE_CATEGORIES:
-            torrents = self.search(imdb_id or title, cat=cat, searchin=searchin)
+            torrents = await self.search(imdb_id or title, cat=cat, searchin=searchin)
             if torrents:
                 break
 
@@ -118,38 +128,39 @@ class Filelist(object):
             torrent.similarity = fuzz.partial_ratio(title, torrent.title)
 
         order = (
-            desc("$similarity > 70").desc("score").desc("rosubbed").desc("dolby").desc(
-                "active"
-            ).desc(
-                "resolution"
-            ).desc(
-                "date_uploaded"
-            )
+            desc("$similarity > 70")
+            .desc("score")
+            .desc("rosubbed")
+            .desc("active")
+            .desc("resolution")
+            .desc("date_uploaded")
         )
         torrents = list(sorted(torrents, key=order))
         return torrents
 
-    def best_movie(self, title=None, imdb_id=None, download=False):
+    async def best_movie(self, title=None, imdb_id=None, download=False):
         torrents = []
         if imdb_id:
-            torrents = self.movie_torrents(imdb_id=imdb_id)
+            torrents = await self.movie_torrents(imdb_id=imdb_id)
         if not torrents and title:
-            torrents = self.movie_torrents(title=title)
+            torrents = await self.movie_torrents(title=title)
         if not torrents:
-            logger.error(f"No movie found for title={title}, imdb_id={imdb_id}")
+            logger.error("No movie found for title={%s}, imdb_id={%s}", title, imdb_id)
             return None
 
         torrent = torrents[0]
         logger.info(torrent.pretty_print())
 
         if download:
-            self.download(torrent)
+            await self.download(torrent)
 
         return torrent
 
 
 def main():
-    fire.Fire(Filelist(**config.filelist.auth))
+    filelist = Filelist(**config.filelist.auth)
+    fire.Fire(filelist)
+    asyncio.run(filelist.session.close())
 
 
 if __name__ == "__main__":
