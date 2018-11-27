@@ -1,4 +1,4 @@
-__version__ = "2.0.3"
+__version__ = "2.0.4"
 import asyncio  # isort:skip
 import uvloop  # isort:skip
 
