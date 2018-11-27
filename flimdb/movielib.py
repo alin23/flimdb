@@ -26,7 +26,7 @@ def tryfloat(value, default=0.0):
 
 def tryint(value, default=0):
     try:
-        return value
+        return int(value)
     except:
         return default
 
