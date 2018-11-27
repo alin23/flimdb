@@ -17,6 +17,20 @@ if os.getenv("DB_DEBUG"):
 db = Database()
 
 
+def tryfloat(value, default=0.0):
+    try:
+        return float(value)
+    except:
+        return default
+
+
+def tryint(value, default=0):
+    try:
+        return value
+    except:
+        return default
+
+
 class Movie(db.Entity):
     id = PrimaryKey(str)
     added = Required(datetime)
@@ -42,10 +56,6 @@ class Movie(db.Entity):
             for row in reader:
                 imdb_id = row.get("Const", "")
                 if not Movie.exists(id=imdb_id):
-                    try:
-                        rating = float(row.get("IMDb Rating", 0.0))
-                    except:
-                        rating = 0.0
                     movie = cls(
                         id=imdb_id,
                         added=parse(row.get("Created", "2018")),
@@ -54,11 +64,11 @@ class Movie(db.Entity):
                         title=row.get("Title", ""),
                         type=row.get("Title Type", ""),
                         directors=row.get("Directors", ""),
-                        rating=rating,
-                        runtime=int(row.get("Runtime (mins)", 0)),
-                        year=int(row.get("Year", 2018)),
+                        rating=tryfloat(row.get("IMDb Rating", 0.0)),
+                        runtime=tryint(row.get("Runtime (mins)", 0)),
+                        year=tryint(row.get("Year", 2018), default=2018),
                         genres=row.get("Genres", ""),
-                        votes=int(row.get("Num Votes", 0)),
+                        votes=tryint(row.get("Num Votes", 0)),
                         released=parse(row.get("Release Date", "2018")),
                         url=row.get("URL", ""),
                         downloaded=False,
