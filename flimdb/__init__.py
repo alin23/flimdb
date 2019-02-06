@@ -1,7 +1,9 @@
 __version__ = "2.0.4"
 import asyncio  # isort:skip
+
 try:
     import uvloop  # isort:skip
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())  # isort:skip
 except:
     pass
