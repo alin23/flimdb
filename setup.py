@@ -22,6 +22,7 @@ REQUIRES = [
     "fire",
     "kick",
     "aiohttp",
+    "aiodns",
     "pyorderby",
     "lxml",
     "numpy",
