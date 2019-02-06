@@ -31,7 +31,6 @@ async def download(movie):
         movie.downloaded = True
 
 
-@db_session
 async def watchlist(only_new=False):
     global SESSION
     params = {"list_id": config.imdb.watchlist_id, "author_id": config.imdb.user_id}
