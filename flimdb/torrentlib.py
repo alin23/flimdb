@@ -7,7 +7,7 @@ from dateutil import parser
 
 from . import config
 
-SIZE_MULTIPLIERS = {"K": 1000, "M": 1_000_000, "G": 1_000_000_000}
+SIZE_MULTIPLIERS = {"K": 1000, "M": 1000000, "G": 1000000000}
 
 
 class Category(IntEnum):
