@@ -31,6 +31,7 @@ async def download(movie):
         movie.downloaded = True
 
 
+@db_session
 async def watchlist(only_new=False):
     global SESSION
     params = {"list_id": config.imdb.watchlist_id, "author_id": config.imdb.user_id}
@@ -38,37 +39,44 @@ async def watchlist(only_new=False):
         SESSION = aiohttp.ClientSession(cookies=config.imdb.cookies)
 
     async with SESSION.get(EXPORT_URL, params=params) as resp:
-        with db_session:
-            movies = Movie.from_csv(await resp.text(), only_new=only_new)
+        movies = Movie.from_csv(await resp.text(), only_new=only_new)
 
     return movies
+
+
+@db_session
+async def check_watchlist_once():
+    try:
+        _watchlist = await watchlist(only_new=True)
+        await asyncio.gather(*[download(movie.id) for movie in _watchlist])
+    except Exception as e:
+        logger.exception(e)
 
 
 async def check_watchlist():
     while True:
         logger.debug("Checking watchlist")
-        with db_session:
-            try:
-                _watchlist = await watchlist(only_new=True)
-                await asyncio.gather(*[download(movie.id) for movie in _watchlist])
-            except Exception as e:
-                logger.exception(e)
+        await check_watchlist_once()
         await asyncio.sleep(config.polling.new_movies_minutes * 60)
+
+
+@db_session
+async def check_longterm_watchlist_once():
+    try:
+        await asyncio.gather(
+            *[
+                download(movie.id)
+                for movie in select(m for m in Movie if not m.downloaded)
+            ]
+        )
+    except Exception as e:
+        logger.exception(e)
 
 
 async def check_longterm_watchlist():
     while True:
         logger.debug("Checking longterm watchlist")
-        with db_session:
-            try:
-                await asyncio.gather(
-                    *[
-                        download(movie.id)
-                        for movie in select(m for m in Movie if not m.downloaded)
-                    ]
-                )
-            except Exception as e:
-                logger.exception(e)
+        await check_longterm_watchlist_once()
         await asyncio.sleep(config.polling.longterm_hours * 60 * 60)
 
 
@@ -91,7 +99,7 @@ def main():
     try:
         fire.Fire()
         if SESSION and not SESSION.closed:
-            asyncio.run(SESSION.close())
+            asyncio.get_event_loop().run_until_complete(SESSION.close())
     except KeyboardInterrupt:
         logger.info("Quitting")
 
