@@ -82,7 +82,7 @@ async def watch():
         SESSION = session
         async with aiohttp.ClientSession() as filelist_session:
             filelist = Filelist(session=filelist_session, **config.filelist.auth)
-            asyncio.create_task(check_watchlist())
+            asyncio.get_event_loop().create_task(check_watchlist())
             await check_longterm_watchlist()
 
 
