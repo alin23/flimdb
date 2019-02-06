@@ -13,7 +13,7 @@ from .movielib import Movie
 
 URL = "http://www.imdb.com/"
 WATCHLIST_URL = urljoin(URL, f"user/{config.imdb.user_id}/watchlist")
-EXPORT_URL = urljoin(URL, "list/export")
+EXPORT_URL = urljoin(URL, f"list/{config.imdb.watchlist_id}/export")
 SESSION = None
 filelist = None
 
@@ -33,11 +33,10 @@ async def download(movie):
 
 async def watchlist(only_new=False):
     global SESSION
-    params = {"list_id": config.imdb.watchlist_id, "author_id": config.imdb.user_id}
     if not SESSION:
         SESSION = aiohttp.ClientSession(cookies=config.imdb.cookies)
 
-    async with SESSION.get(EXPORT_URL, params=params) as resp:
+    async with SESSION.get(EXPORT_URL) as resp:
         movies = Movie.from_csv(await resp.text(), only_new=only_new)
 
     return movies
