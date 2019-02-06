@@ -28,7 +28,7 @@ REQUIRES = [
     "python-dateutil",
     "pony",
     "python-Levenshtein",
-    "cssselect",
+    "cssselect"
 ]
 
 setup(
@@ -52,7 +52,7 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: PyPy",
+        "Programming Language :: Python :: Implementation :: PyPy"
     ],
     install_requires=REQUIRES,
     tests_require=["coverage", "pytest"],
@@ -62,7 +62,7 @@ setup(
     entry_points={
         "console_scripts": [
             "flimdb = flimdb.flimdb:main",
-            "filelist = flimdb.filelist:main",
+            "filelist = flimdb.filelist:main"
         ]
-    },
+    }
 )

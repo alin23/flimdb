@@ -71,7 +71,7 @@ class Movie(db.Entity):
                         votes=tryint(row.get("Num Votes", 0)),
                         released=parse(row.get("Release Date", "2018")),
                         url=row.get("URL", ""),
-                        downloaded=False,
+                        downloaded=False
                     )
                     movies.append(movie)
                 elif not only_new:
