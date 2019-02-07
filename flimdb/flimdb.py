@@ -11,11 +11,12 @@ from . import APP_NAME, config, logger
 from .filelist import Filelist
 from .movielib import Movie
 
-URL = "http://www.imdb.com/"
+URL = "https://www.imdb.com/"
 WATCHLIST_URL = urljoin(URL, f"user/{config.imdb.user_id}/watchlist")
 EXPORT_URL = urljoin(URL, f"list/{config.imdb.watchlist_id}/export")
 SESSION = None
 filelist = None
+timeout = aiohttp.ClientTimeout(total=30, connect=10)
 
 
 @db_session
@@ -32,9 +33,9 @@ async def download(movie):
 
 
 async def watchlist(only_new=False):
-    global SESSION
+    global SESSION, timeout
     if not SESSION:
-        SESSION = aiohttp.ClientSession(cookies=config.imdb.cookies)
+        SESSION = aiohttp.ClientSession(cookies=config.imdb.cookies, timeout=timeout)
 
     async with SESSION.get(EXPORT_URL) as resp:
         movies = Movie.from_csv(await resp.text(), only_new=only_new)
@@ -83,11 +84,15 @@ def update_config(name="config"):
 
 
 async def watch():
-    global SESSION, filelist
-    async with aiohttp.ClientSession(cookies=config.imdb.cookies) as session:
+    global SESSION, filelist, timeout
+    async with aiohttp.ClientSession(
+        cookies=config.imdb.cookies, timeout=timeout
+    ) as session:
         SESSION = session
         async with aiohttp.ClientSession() as filelist_session:
-            filelist = Filelist(session=filelist_session, **config.filelist.auth)
+            filelist = Filelist(
+                session=filelist_session, timeout=timeout, **config.filelist.auth
+            )
             asyncio.get_event_loop().create_task(check_watchlist())
             await check_longterm_watchlist()
 
