@@ -89,10 +89,8 @@ async def watch():
         cookies=config.imdb.cookies, timeout=timeout
     ) as session:
         SESSION = session
-        async with aiohttp.ClientSession() as filelist_session:
-            filelist = Filelist(
-                session=filelist_session, timeout=timeout, **config.filelist.auth
-            )
+        async with aiohttp.ClientSession(timeout=timeout) as filelist_session:
+            filelist = Filelist(session=filelist_session, **config.filelist.auth)
             asyncio.get_event_loop().create_task(check_watchlist())
             await check_longterm_watchlist()
 
