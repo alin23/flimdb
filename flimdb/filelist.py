@@ -5,8 +5,9 @@ import pathlib
 from operator import attrgetter
 from urllib.parse import urljoin
 
-import aiohttp
 import fire
+
+import aiohttp
 import numpy as np
 from fuzzywuzzy import fuzz
 from lxml.html import fromstring
@@ -54,7 +55,7 @@ class Filelist:
     @staticmethod
     def _normalize_scores(scores, _max=100, _min=0):
         return np.digitize(
-            _max + _max * (scores - np.max(scores)) / (np.ptp(scores) - _min),
+            _max + _max * (scores - np.max(scores)) / ((np.ptp(scores) - _min) or 1),
             np.arange(_min, _max),
         )
 

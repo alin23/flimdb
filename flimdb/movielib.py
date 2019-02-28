@@ -55,7 +55,7 @@ class Movie(db.Entity):
             reader = csv.DictReader(f, dialect="unix")
             for row in reader:
                 imdb_id = row.get("Const", "")
-                if not Movie.exists(id=imdb_id):
+                if imdb_id and not Movie.exists(id=imdb_id):
                     movie = cls(
                         id=imdb_id,
                         added=parse(row.get("Created", "2018")),
@@ -71,7 +71,7 @@ class Movie(db.Entity):
                         votes=tryint(row.get("Num Votes", 0)),
                         released=parse(row.get("Release Date", "2018")),
                         url=row.get("URL", ""),
-                        downloaded=False
+                        downloaded=False,
                     )
                     movies.append(movie)
                 elif not only_new:

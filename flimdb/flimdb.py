@@ -4,7 +4,6 @@ from urllib.parse import urljoin
 
 import aiohttp
 import fire
-import kick
 from pony.orm import commit, db_session, select
 
 from . import APP_NAME, config, logger
@@ -82,8 +81,24 @@ async def check_longterm_watchlist():
         await asyncio.sleep(config.polling.longterm_hours * 60 * 60)
 
 
-def update_config(name="config"):
-    kick.update_config(APP_NAME.lower(), variant=name)
+async def check(watchlist=True, longterm=True):
+    assert watchlist or longterm
+
+    global SESSION, filelist, timeout
+    async with aiohttp.ClientSession(
+        cookies=config.imdb.cookies, timeout=timeout
+    ) as session:
+        SESSION = session
+        async with aiohttp.ClientSession(timeout=timeout) as filelist_session:
+            filelist = Filelist(session=filelist_session, **config.filelist.auth)
+
+            coros = []
+            if watchlist:
+                coros.append(check_watchlist_once())
+            if longterm:
+                coros.append(check_longterm_watchlist_once())
+
+            await asyncio.gather(*coros)
 
 
 async def watch():
