@@ -94,7 +94,7 @@ async def watch():
         SESSION = session
         async with aiohttp.ClientSession(timeout=timeout) as filelist_session:
             filelist = Filelist(session=filelist_session, **config.filelist.auth)
-            asyncio.get_event_loop().create_task(check_watchlist())
+            asyncio.create_task(check_watchlist())
             await check_longterm_watchlist()
 
 
@@ -103,7 +103,7 @@ def main():
     try:
         fire.Fire()
         if SESSION and not SESSION.closed:
-            asyncio.get_event_loop().run_until_complete(SESSION.close())
+            asyncio.run(SESSION.close())
     except KeyboardInterrupt:
         logger.info("Quitting")
 

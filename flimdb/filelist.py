@@ -31,7 +31,7 @@ class Filelist:
         Category.FILME_BLU_RAY,
         Category.FILME_DVD_RO,
         Category.FILME_SD,
-        Category.FILME_DVD
+        Category.FILME_DVD,
     ]
 
     def __init__(self, username=None, password=None, torrentdir=None, session=None):
@@ -55,7 +55,7 @@ class Filelist:
     def _normalize_scores(scores, _max=100, _min=0):
         return np.digitize(
             _max + _max * (scores - np.max(scores)) / (np.ptp(scores) - _min),
-            np.arange(_min, _max)
+            np.arange(_min, _max),
         )
 
     async def get(self, url, *args, **kwargs):
@@ -74,13 +74,13 @@ class Filelist:
         cat=Category.TOATE,
         searchin=SearchIn.NUME_DESCRIERE,
         sort=Sort.HIBRID,
-        fields=None
+        fields=None,
     ):
         params = {
             "search": query,
             "cat": Category(cat).value,
             "searchin": SearchIn(searchin).value,
-            "sort": Sort(sort).value
+            "sort": Sort(sort).value,
         }
         r = await self.get(self.SEARCH_URL, params=params)
         async with r:

@@ -7,7 +7,7 @@ from dateutil import parser
 
 from . import config
 
-SIZE_MULTIPLIERS = {"K": 1000, "M": 1000000, "G": 1000000000}
+SIZE_MULTIPLIERS = {"K": 1000, "M": 1_000_000, "G": 1_000_000_000}
 
 
 class Category(IntEnum):
@@ -78,7 +78,7 @@ LOW_QUALITY_RELEASES = {
     "TC",
     "TELECINE",
     "TELESYNC",
-    "TS"
+    "TS",
 }
 
 
@@ -101,7 +101,7 @@ class Torrent:
         resolution: int,
         dolby: bool,
         rosubbed: bool,
-        score: int
+        score: int,
     ):
         self.title = title
         self.url = url
@@ -210,5 +210,5 @@ class Torrent:
             resolution,
             dolby,
             rosubbed,
-            score
+            score,
         )
