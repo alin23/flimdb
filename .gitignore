@@ -11,3 +11,4 @@ docs/build/
 venv/
 wheelhouse/
 *.sublime*
+sftp-config.json

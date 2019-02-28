@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 import aiohttp
 import fire
 import kick
-from pony.orm import db_session, select
+from pony.orm import commit, db_session, select
 
 from . import APP_NAME, config, logger
 from .filelist import Filelist
@@ -46,7 +46,9 @@ async def watchlist(only_new=False):
 @db_session
 async def check_watchlist_once():
     try:
+        commit()
         _watchlist = await watchlist(only_new=True)
+        commit()
         await asyncio.gather(*[download(movie.id) for movie in _watchlist])
     except Exception as e:
         logger.exception(e)
@@ -62,6 +64,7 @@ async def check_watchlist():
 @db_session
 async def check_longterm_watchlist_once():
     try:
+        commit()
         await asyncio.gather(
             *[
                 download(movie.id)
