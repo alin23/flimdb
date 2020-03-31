@@ -89,7 +89,8 @@ async def check(watchlist=True, longterm=True):
         cookies=config.imdb.cookies, timeout=timeout
     ) as session:
         SESSION = session
-        async with aiohttp.ClientSession(timeout=timeout) as filelist_session:
+
+        async with get_filelist_session() as filelist_session:
             filelist = Filelist(session=filelist_session, **config.filelist.auth)
 
             coros = []
@@ -101,13 +102,21 @@ async def check(watchlist=True, longterm=True):
             await asyncio.gather(*coros)
 
 
+def get_filelist_session():
+    return aiohttp.ClientSession(
+        timeout=timeout,
+        headers={"Authorization": f"Basic {config.filelist.auth.basic}"},
+        raise_for_status=True,
+    )
+
+
 async def watch():
     global SESSION, filelist, timeout
     async with aiohttp.ClientSession(
         cookies=config.imdb.cookies, timeout=timeout
     ) as session:
         SESSION = session
-        async with aiohttp.ClientSession(timeout=timeout) as filelist_session:
+        async with get_filelist_session() as filelist_session:
             filelist = Filelist(session=filelist_session, **config.filelist.auth)
             asyncio.create_task(check_watchlist())
             await check_longterm_watchlist()

@@ -5,9 +5,8 @@ import pathlib
 from operator import attrgetter
 from urllib.parse import urljoin
 
-import fire
-
 import aiohttp
+import fire
 import numpy as np
 from fuzzywuzzy import fuzz
 from lxml.html import fromstring
@@ -20,10 +19,7 @@ from .torrentlib import Category, SearchIn, Sort, Torrent
 class Filelist:
     """Filelist helper"""
 
-    URL = "https://filelist.ro"
-    AUTH_URL = urljoin(URL, "takelogin.php")
-    LOGIN_URL = urljoin(URL, "login.php")
-    SEARCH_URL = urljoin(URL, "browse.php")
+    URL = "https://filelist.ro/api.php"
 
     MOVIE_CATEGORIES = [
         Category.FILME_4K,
@@ -35,22 +31,26 @@ class Filelist:
         Category.FILME_DVD,
     ]
 
-    def __init__(self, username=None, password=None, torrentdir=None, session=None):
+    def __init__(self, basic=None, torrentdir=None, session=None):
         super(Filelist, self).__init__()
-        self.username = username
-        self.password = password
+        self.basic_auth = basic
         self.torrentdir = pathlib.Path(torrentdir)
         self.session = session
 
-    async def _request(self, method, url, *args, **kwargs):
+    async def _request(self, method, url, *args, json=True, **kwargs):
         if not self.session:
-            self.session = aiohttp.ClientSession()
-        resp = await self.session.request(method, url, *args, **kwargs)
-        if not resp.url.human_repr().startswith(self.LOGIN_URL):
-            return resp
-
-        await self.authenticate()
-        return await self.session.request(method, url, *args, **kwargs)
+            self.session = aiohttp.ClientSession(
+                headers={"Authorization": f"Basic {self.basic_auth}"},
+                raise_for_status=True,
+            )
+        try:
+            async with self.session.request(method, url, *args, **kwargs) as resp:
+                if json:
+                    return await resp.json()
+                return await resp.read()
+        except aiohttp.client_exceptions.ClientResponseError:
+            # logger.exception(exc)
+            return None
 
     @staticmethod
     def _normalize_scores(scores, _max=100, _min=0):
@@ -65,29 +65,22 @@ class Filelist:
     async def post(self, url, *args, **kwargs):
         return await self._request("POST", url, *args, **kwargs)
 
-    async def authenticate(self):
-        data = {"username": self.username, "password": self.password}
-        return await self.session.post(self.AUTH_URL, data=data)
-
     async def search(
-        self,
-        query,
-        cat=Category.TOATE,
-        searchin=SearchIn.NUME_DESCRIERE,
-        sort=Sort.HIBRID,
-        fields=None,
+        self, query, cat=None, searchin=SearchIn.NUME, fields=None,
     ):
         params = {
-            "search": query,
-            "cat": Category(cat).value,
-            "searchin": SearchIn(searchin).value,
-            "sort": Sort(sort).value,
+            "action": "search-torrents",
+            "type": SearchIn(searchin).value,
+            "query": query,
         }
-        r = await self.get(self.SEARCH_URL, params=params)
-        async with r:
-            dom = fromstring(await r.text())
-        torrents = dom.cssselect(".torrentrow")
-        torrents = map(Torrent.from_torrent_row, torrents)
+        if cat:
+            params["category"] = ",".join(str(Category(c).value) for c in cat)
+
+        json_resp = await self.get(self.URL, params=params)
+        if not json_resp:
+            return []
+
+        torrents = map(Torrent.from_torrent_row, json_resp)
         torrents = list(filter(lambda t: t.active and not t.is_low_quality, torrents))
 
         if fields:
@@ -99,10 +92,9 @@ class Filelist:
         url = torrent.download_url
         torrent_file = self.torrentdir / f"{torrent.title}.torrent"
 
-        r = await self.get(url)
-        async with r:
-            if r.status == 200:
-                torrent_file.write_bytes(await r.read())
+        torrent_bytes = await self.get(url, json=False)
+        if torrent_bytes:
+            torrent_file.write_bytes(torrent_bytes)
 
         return torrent_file
 
@@ -116,7 +108,7 @@ class Filelist:
 
         torrents = []
         for cat in self.MOVIE_CATEGORIES:
-            torrents = await self.search(imdb_id or title, cat=cat, searchin=searchin)
+            torrents = await self.search(imdb_id or title, cat=[cat], searchin=searchin)
             if torrents:
                 break
 

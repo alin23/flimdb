@@ -1,8 +1,8 @@
 import re
 from datetime import datetime
-from enum import IntEnum
-from urllib.parse import urljoin
+from enum import Enum, IntEnum
 
+import addict
 from dateutil import parser
 
 from . import config
@@ -39,11 +39,9 @@ class Category(IntEnum):
     FILME_4K_BLU_RAY = 26
 
 
-class SearchIn(IntEnum):
-    NUME_DESCRIERE = 0
-    NUME = 1
-    DESCRIERE = 2
-    IMDB = 3
+class SearchIn(Enum):
+    NUME = "name"
+    IMDB = "imdb"
 
 
 class Sort(IntEnum):
@@ -155,58 +153,36 @@ class Torrent:
 
     @classmethod
     def from_torrent_row(cls, torrentrow):
-        elems = torrentrow.cssselect(".torrenttable")
-        torrent = elems[1].cssselect("span>a")[0]
+        torrent = addict.Dict(torrentrow)
 
-        title = torrent.text_content().strip(".")
-        url = urljoin(config.filelist.url, torrent.get("href"))
-        download_url = urljoin(
-            config.filelist.url, elems[3].cssselect("span>a")[0].get("href")
-        )
-
-        date_element = elems[5].cssselect("span>nobr>font")[0]
-        date_string = f"{date_element.text} {date_element[0].tail}"
-        date_uploaded = parser.parse(date_string)
-
-        size_string = elems[6].text_content()
-        multiplier = SIZE_MULTIPLIERS.get(size_string[-2], 1)
-        size = float(size_string[:-2]) * multiplier
-
-        snatched = int(re.sub(r"\D", "", elems[7].text_content()))
-        seeders = int(re.sub(r"\D", "", elems[8].text_content()))
-        leechers = int(re.sub(r"\D", "", elems[9].text_content()))
-
+        title = torrent.name.lower()
         resolution = re.search(r"\d+(?=p)", title)
         if resolution:
             resolution = int(resolution.group(0))
         else:
             resolution = 0
 
-        tags = elems[1].cssselect("span>font")
-        rosubbed = False
-        if tags:
-            rosubbed = "rosub" in tags[0].text_content().lower()
-        rosubbed = rosubbed or ("rosub" in title.lower())
-        dolby = ("dts" in title.lower()) or ("dd5.1" in title.lower())
+        rosubbed = "rosub" in title
+        dolby = ("dts" in title) or ("dd5.1" in title)
 
-        size_gb = size / SIZE_MULTIPLIERS["G"]
+        size_gb = torrent.size / SIZE_MULTIPLIERS["G"]
         score = int(
-            (resolution - (size_gb * 100))
-            - abs(resolution - config.filelist.preferred_resolution) * 15
+            (resolution - (size_gb * 200))
+            - abs(resolution - config.filelist.preferred_resolution) * 20
             + (rosubbed * 2000)
-            + (dolby * 500)
-            + (seeders * 10)
-            + (leechers)
+            + (dolby * 50)
+            + (torrent.seeders * 10)
+            + (torrent.leechers)
         )
         return cls(
-            title,
-            url,
-            download_url,
-            date_uploaded,
-            size,
-            snatched,
-            seeders,
-            leechers,
+            torrent.name,
+            f"https://filelist.ro/details.php?id={torrent.id}",
+            torrent.download_link,
+            parser.parse(torrent.upload_date),
+            torrent.size,
+            torrent.times_completed,
+            torrent.seeders,
+            torrent.leechers,
             resolution,
             dolby,
             rosubbed,
