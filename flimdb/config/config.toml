@@ -8,8 +8,7 @@ id = ""
 url = "http://filelist.io"
 preferred_resolution = 2160
 [filelist.auth]
-username = ""
-password = ""
+basic = ""
 torrentdir = ""
 
 [polling]
