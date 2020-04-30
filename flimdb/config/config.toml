@@ -5,7 +5,7 @@ watchlist_id = ""
 id = ""
 
 [filelist]
-url = "http://filelist.ro"
+url = "http://filelist.io"
 preferred_resolution = 2160
 [filelist.auth]
 username = ""

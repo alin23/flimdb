@@ -3,23 +3,21 @@
 import asyncio
 import pathlib
 from operator import attrgetter
-from urllib.parse import urljoin
 
 import aiohttp
 import fire
 import numpy as np
 from fuzzywuzzy import fuzz
-from lxml.html import fromstring
 from pyorderby import desc
 
 from . import config, logger
-from .torrentlib import Category, SearchIn, Sort, Torrent
+from .torrentlib import Category, SearchIn, Torrent
 
 
 class Filelist:
     """Filelist helper"""
 
-    URL = "https://filelist.ro/api.php"
+    URL = "https://filelist.io/api.php"
 
     MOVIE_CATEGORIES = [
         Category.FILME_4K,
@@ -65,9 +63,7 @@ class Filelist:
     async def post(self, url, *args, **kwargs):
         return await self._request("POST", url, *args, **kwargs)
 
-    async def search(
-        self, query, cat=None, searchin=SearchIn.NUME, fields=None,
-    ):
+    async def search(self, query, cat=None, searchin=SearchIn.NUME, fields=None):
         params = {
             "action": "search-torrents",
             "type": SearchIn(searchin).value,

@@ -176,7 +176,7 @@ class Torrent:
         )
         return cls(
             torrent.name,
-            f"https://filelist.ro/details.php?id={torrent.id}",
+            f"https://filelist.io/details.php?id={torrent.id}",
             torrent.download_link,
             parser.parse(torrent.upload_date),
             torrent.size,
