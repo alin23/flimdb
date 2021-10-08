@@ -5,7 +5,7 @@ from datetime import datetime
 from io import StringIO
 
 from dateutil.parser import parse
-from pony.orm import Database, Optional, PrimaryKey, Required, sql_debug
+from pony.orm import Database, Optional, PrimaryKey, Required, db_session, sql_debug
 
 from . import CACHE_DIR
 
@@ -55,27 +55,28 @@ class Movie(db.Entity):
             reader = csv.DictReader(f, dialect="unix")
             for row in reader:
                 imdb_id = row.get("Const", "")
-                if imdb_id and not Movie.exists(id=imdb_id):
-                    movie = cls(
-                        id=imdb_id,
-                        added=parse(row.get("Created", "2018")),
-                        modified=parse(row.get("Modified", "2018")),
-                        description=row.get("Description", ""),
-                        title=row.get("Title", ""),
-                        type=row.get("Title Type", ""),
-                        directors=row.get("Directors", ""),
-                        rating=tryfloat(row.get("IMDb Rating", 0.0)),
-                        runtime=tryint(row.get("Runtime (mins)", 0)),
-                        year=tryint(row.get("Year", 2018), default=2018),
-                        genres=row.get("Genres", ""),
-                        votes=tryint(row.get("Num Votes", 0)),
-                        released=parse(row.get("Release Date", "2018")),
-                        url=row.get("URL", ""),
-                        downloaded=False,
-                    )
-                    movies.append(movie)
-                elif not only_new:
-                    movies.append(Movie[imdb_id])
+                with db_session:
+                    if imdb_id and not Movie.exists(id=imdb_id):
+                        movie = cls(
+                            id=imdb_id,
+                            added=parse(row.get("Created", "2018")),
+                            modified=parse(row.get("Modified", "2018")),
+                            description=row.get("Description", ""),
+                            title=row.get("Title", ""),
+                            type=row.get("Title Type", ""),
+                            directors=row.get("Directors", ""),
+                            rating=tryfloat(row.get("IMDb Rating", 0.0)),
+                            runtime=tryint(row.get("Runtime (mins)", 0)),
+                            year=tryint(row.get("Year", 2018), default=2018),
+                            genres=row.get("Genres", ""),
+                            votes=tryint(row.get("Num Votes", 0)),
+                            released=parse(row.get("Release Date", "2018")),
+                            url=row.get("URL", ""),
+                            downloaded=False,
+                        )
+                        movies.append(movie)
+                    elif not only_new:
+                        movies.append(Movie[imdb_id])
 
         return movies
 
